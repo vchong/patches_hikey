@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+	<remote name="vchong" fetch="https://github.com/vchong" />
+	<remote name="96b-hk" fetch="https://github.com/96boards-hikey" />
+
+	<remove-project name="optee_os" />
+	<remove-project name="linux" />
+
+	<project remote="vchong" path="optee_os" name="optee_os" revision="wipspi2" />
+	<project remote="96b-hk" path="linux" name="linux" revision="hikey-mainline-rebase" />
+</manifest>

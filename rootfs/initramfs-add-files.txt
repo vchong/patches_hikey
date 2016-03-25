@@ -21,6 +21,23 @@ slink /lib/libteec.so libteec.so.1 755 0 0
 # OP-TEE tests
 dir /lib/optee_armtz 755 0 0
 
+# spi
+file /lib/libsoc.so.2.3.1 ${TOP}/libsoc/lib/.libs/libsoc.so.2.3.1 755 0 0
+slink /lib/libsoc.so.2 libsoc.so.2.3.1 755 0 0
+slink /lib/libsoc.so libsoc.so.2 755 0 0
+file /bin/spidev_test ${TOP}/photoresistor/spidev_test 755 0 0
+file /bin/photoresistor.exe ${TOP}/photoresistor/photoresistor.exe 755 0 0
+file /bin/photoresistor_nocs.exe ${TOP}/photoresistor/photoresistor_nocs.exe 755 0 0
+file /bin/photoresistor_static.exe ${TOP}/photoresistor/photoresistor_static.exe 755 0 0
+file /bin/photoresistor_nocs_static.exe ${TOP}/photoresistor/photoresistor_nocs_static.exe 755 0 0
+file /bin/cfg_pinctrl_run_tst.sh ${TOP}/patches_hikey/mymod/cfg_pinctrl_run_tst.sh 755 0 0
+
+# hello worlds
+file /bin/template_ta ${TOP}/template_ta/host/template_ta_host 755 0 0
+file /lib/optee_armtz/11111111-2222-3333-445566778899aabb.ta ${TOP}/template_ta/ta/out/11111111-2222-3333-445566778899aabb.ta 444 0 0
+file /bin/lcu14_optee_hello_world ${TOP}/lcu14_optee_hello_world/host/hello_world 755 0 0
+file /lib/optee_armtz/7aaaf200-2450-11e4-abe20002a5d5c51b.ta ${TOP}/lcu14_optee_hello_world/ta/7aaaf200-2450-11e4-abe20002a5d5c51b.ta 444 0 0
+
 # Secure storage
 dir /data 755 0 0
 dir /data/tee 755 0 0

@@ -1,0 +1,83 @@
+commit 3bff4124f2b5e90991e08084318d4596bddca4c3
+Author: Victor Chong <victor.chong@linaro.org>
+Date:   Fri Sep 9 08:45:12 2016 +0100
+
+    mymod
+
+diff --git a/common.mk b/common.mk
+index 6a5b773..b934ca5 100644
+--- a/common.mk
++++ b/common.mk
+@@ -103,7 +103,7 @@ endif
+ define KERNEL_VERSION
+ $(shell cd $(LINUX_PATH) && $(MAKE) --no-print-directory kernelversion)
+ endef
+-DEBUG ?= 0
++DEBUG ?= 1
+ 
+ ################################################################################
+ # default target is all
+@@ -219,6 +219,7 @@ XTEST_COMMON_FLAGS ?= CROSS_COMPILE_HOST=$(CROSS_COMPILE_NS_USER)\
+ 	TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR) \
+ 	CFG_DEV_PATH=$(ROOT) \
+ 	COMPILE_NS_USER=$(COMPILE_NS_USER) \
++	CFG_TEE_TA_LOG_LEVEL=$(CFG_TEE_CORE_LOG_LEVEL) \
+ 	O=$(OPTEE_TEST_OUT_PATH)
+ 
+ xtest-common: optee-os optee-client
+diff --git a/hikey.mk b/hikey.mk
+index c3f198e..3f8fd2a 100644
+--- a/hikey.mk
++++ b/hikey.mk
+@@ -280,12 +280,26 @@ filelist-all: busybox
+ 	@find $(OPTEE_TEST_OUT_PATH) -name "*.ta" | \
+ 		sed 's/\(.*\)\/\(.*\)/file \/lib\/optee_armtz\/\2 \1\/\2 444 0 0/g' >> $(GEN_ROOTFS_PATH)/filelist-all.txt
+ 	@echo "file /lib/optee_armtz/8aaaf200-2450-11e4-abe20002a5d5c51b.ta $(HELLOWORLD_PATH)/ta/8aaaf200-2450-11e4-abe20002a5d5c51b.ta 444 0 0" >> $(GEN_ROOTFS_PATH)/filelist-all.txt
+-	@if [ -e $(OPTEE_GENDRV_MODULE) ]; then \
++	@if [ -e $(OPTEE_GENDRV_MODULE) -o -e $(LINUX_PATH)/crypto/tcrypt.ko ]; then \
+ 		echo "# OP-TEE device" >> $(GEN_ROOTFS_PATH)/filelist-all.txt; \
+ 		echo "dir /lib/modules 755 0 0" >> $(GEN_ROOTFS_PATH)/filelist-all.txt; \
+ 		echo "dir /lib/modules/$(call KERNEL_VERSION) 755 0 0" >> $(GEN_ROOTFS_PATH)/filelist-all.txt; \
++	fi
++	@if [ -e $(OPTEE_GENDRV_MODULE) ]; then \
+ 		echo "file /lib/modules/$(call KERNEL_VERSION)/optee.ko $(OPTEE_GENDRV_MODULE) 755 0 0" >> $(GEN_ROOTFS_PATH)/filelist-all.txt; \
+ 	fi
++	@if [ -e $(LINUX_PATH)/crypto/tcrypt.ko ]; then \
++		find $(LINUX_PATH)/crypto -name "*.ko" | \
++                sed 's/\(.*\)\/\(.*\)/file \/lib\/modules\/$(call KERNEL_VERSION)\/\2 \1\/\2 755 0 0/g' >> $(GEN_ROOTFS_PATH)/filelist-all.txt; \
++	fi
++	@if [ -e $(LINUX_PATH)/arch/arm64/crypto/sha256-arm64.ko -o -e $(LINUX_PATH)/arch/arm64/crypto/sha256-neon.ko ]; then \
++		find $(LINUX_PATH)/arch/arm64/crypto -name "*.ko" | \
++                sed 's/\(.*\)\/\(.*\)/file \/lib\/modules\/$(call KERNEL_VERSION)\/\2 \1\/\2 755 0 0/g' >> $(GEN_ROOTFS_PATH)/filelist-all.txt; \
++	fi
++	@if [ -e $(LINUX_PATH)/arch/arm/crypto/sha256-arm.ko ]; then \
++		find $(LINUX_PATH)/arch/arm/crypto -name "*.ko" | \
++                sed 's/\(.*\)\/\(.*\)/file \/lib\/modules\/$(call KERNEL_VERSION)\/\2 \1\/\2 755 0 0/g' >> $(GEN_ROOTFS_PATH)/filelist-all.txt; \
++	fi
+ 
+ update_rootfs: optee-client xtest helloworld aes-perf sha-perf strace filelist-all linux-gen_init_cpio
+ 	cd $(GEN_ROOTFS_PATH); \
+diff --git a/kconfigs/hikey.conf b/kconfigs/hikey.conf
+index ae3a960..157ca4e 100644
+--- a/kconfigs/hikey.conf
++++ b/kconfigs/hikey.conf
+@@ -1,3 +1,19 @@
+ CONFIG_TEE=y
+ CONFIG_OPTEE=y
+ CONFIG_PINCTRL_SINGLE=y
++CONFIG_CRYPTO=y
++CONFIG_CRYPTO_MANAGER=y
++CONFIG_CRYPTO_MANAGER_DISABLE_TESTS=y
++CONFIG_CRYPTO_TEST=m
++CONFIG_CRYPTO_SHA256=y
++CONFIG_CRYPTO_SHA512=y
++CONFIG_ARM64_CRYPTO=y
++CONFIG_CRYPTO_SHA2_ARM64_CE=m
++CONFIG_CRYPTO_SHA2_ARM64_NEON=m
++CONFIG_CRYPTO_SHA256_ARM64=m
++CONFIG_CRYPTO_SHA512_ARM64=m
++CONFIG_ARM_CRYPTO=n
++CONFIG_CRYPTO_SHA2_ARM_CE=n
++CONFIG_CRYPTO_SHA256_ARM=n
++CONFIG_CPU_V7M=n
++CONFIG_KERNEL_MODE_NEON=y

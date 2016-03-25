@@ -1,0 +1,199 @@
+commit 7ec7f32cad6895382c67381ee5168562923a6831
+Author: Victor Chong <victor.chong@linaro.org>
+Date:   Thu Jun 30 08:40:30 2016 +0100
+
+    mymod
+
+diff --git a/common.mk b/common.mk
+index 0b15428..1f1bdd1 100644
+--- a/common.mk
++++ b/common.mk
+@@ -110,7 +110,7 @@ endif
+ define KERNEL_VERSION
+ $(shell cd $(LINUX_PATH) && $(MAKE) --no-print-directory kernelversion)
+ endef
+-DEBUG ?= 0
++DEBUG ?= 1
+ 
+ ################################################################################
+ # default target is all
+@@ -208,6 +208,12 @@ OPTEE_OS_COMMON_FLAGS ?= \
+ 	CFG_TEE_CORE_LOG_LEVEL=$(CFG_TEE_CORE_LOG_LEVEL) \
+ 	DEBUG=$(DEBUG)
+ 
++#OPTEE_OS_COMMON_FLAGS ?= CROSS_COMPILE=$(AARCH32_CROSS_COMPILE) \
++#      CROSS_COMPILE_core=$(CROSS_COMPILE_S_KERNEL) \
++#      CROSS_COMPILE_ta_arm64=$(AARCH64_CROSS_COMPILE) \
++#      CFG_TEE_CORE_LOG_LEVEL=$(CFG_TEE_CORE_LOG_LEVEL) \
++#      DEBUG=$(DEBUG)
++
+ optee-os-common:
+ 	$(MAKE) -C $(OPTEE_OS_PATH) $(OPTEE_OS_COMMON_FLAGS)
+ 
+@@ -215,8 +221,10 @@ OPTEE_OS_CLEAN_COMMON_FLAGS ?= $(OPTEE_OS_COMMON_EXTRA_FLAGS)
+ 
+ optee-os-clean-common: xtest-clean helloworld-clean
+ 	$(MAKE) -C $(OPTEE_OS_PATH) $(OPTEE_OS_CLEAN_COMMON_FLAGS) clean
++	rm -rf $(OPTEE_OS_PATH)/out
+ 
+ OPTEE_CLIENT_COMMON_FLAGS ?= CROSS_COMPILE=$(CROSS_COMPILE_NS_USER)
++#OPTEE_CLIENT_COMMON_FLAGS ?= CROSS_COMPILE=$(LEGACY_AARCH64_CROSS_COMPILE)
+ 
+ optee-client-common:
+ 	$(MAKE) -C $(OPTEE_CLIENT_PATH) $(OPTEE_CLIENT_COMMON_FLAGS)
+@@ -236,7 +244,8 @@ XTEST_COMMON_FLAGS ?= CROSS_COMPILE_HOST=$(CROSS_COMPILE_NS_USER)\
+ 	TA_DEV_KIT_DIR=$(OPTEE_OS_TA_DEV_KIT_DIR) \
+ 	OPTEE_CLIENT_EXPORT=$(OPTEE_CLIENT_EXPORT) \
+ 	COMPILE_NS_USER=$(COMPILE_NS_USER) \
+-	O=$(OPTEE_TEST_OUT_PATH)
++	O=$(OPTEE_TEST_OUT_PATH) \
++	CFG_TEE_TA_LOG_LEVEL=3
+ 
+ xtest-common: optee-os optee-client
+ 	$(MAKE) -C $(OPTEE_TEST_PATH) $(XTEST_COMMON_FLAGS)
+diff --git a/hikey.mk b/hikey.mk
+index 04c8838..50d6e75 100644
+--- a/hikey.mk
++++ b/hikey.mk
+@@ -9,8 +9,8 @@ COMPILE_S_USER    ?= 32
+ COMPILE_S_KERNEL  ?= 64
+ 
+ # Normal/secure world console UARTs: 3 or 0 [default 3]
+-CFG_NW_CONSOLE_UART ?= 3
+-CFG_SW_CONSOLE_UART ?= 3
++CFG_NW_CONSOLE_UART ?= 0
++CFG_SW_CONSOLE_UART ?= 0
+ 
+ ################################################################################
+ # Includes
+@@ -97,10 +97,13 @@ endif
+ 
+ arm-tf: optee-os edk2
+ 	$(ARM_TF_EXPORTS) $(MAKE) -C $(ARM_TF_PATH) $(ARM_TF_FLAGS) all fip
++	@cp $(ARM_TF_PATH)/build/hikey/$(ARM_TF_BUILD)/fip.bin $(OUT_PATH)/
++
+ 
+ .PHONY: arm-tf-clean
+ arm-tf-clean:
+ 	$(ARM_TF_EXPORTS) $(MAKE) -C $(ARM_TF_PATH) $(ARM_TF_FLAGS) clean
++	@rm -f $(OUT_PATH)/fip.bin
+ 
+ ################################################################################
+ # Busybox
+@@ -144,7 +147,11 @@ edk2-clean: edk2-clean-common
+ # Linux kernel
+ ################################################################################
+ LINUX_DEFCONFIG_COMMON_ARCH ?= arm64
+-LINUX_DEFCONFIG_COMMON_FILES ?= $(LINUX_PATH)/arch/arm64/configs/defconfig \
++LINUX_DEFCONFIG_COMMON_FILES ?= $(LINUX_PATH)/arch/arm64/configs/hikey_defconfig \
++				$(CURDIR)/kconfigs/hikey.conf \
++				$(PATCHES_PATH)/kernel_config/usb_net_dm9601.conf \
++				$(PATCHES_PATH)/kernel_config/ftrace.conf
++#LINUX_DEFCONFIG_COMMON_FILES ?= $(LINUX_PATH)/arch/arm64/configs/defconfig \
+ 				$(CURDIR)/kconfigs/hikey.conf \
+ 				$(PATCHES_PATH)/kernel_config/usb_net_dm9601.conf \
+ 				$(PATCHES_PATH)/kernel_config/ftrace.conf
+@@ -186,7 +193,17 @@ linux-cleaner: linux-cleaner-common
+ ################################################################################
+ # OP-TEE
+ ################################################################################
+-OPTEE_OS_COMMON_FLAGS += PLATFORM=hikey CFG_CONSOLE_UART=$(CFG_SW_CONSOLE_UART)
++OPTEE_OS_COMMON_FLAGS += PLATFORM=hikey CFG_TEE_TA_LOG_LEVEL=3 CFG_CONSOLE_UART=$(CFG_SW_CONSOLE_UART)
++OPTEE_OS_COMMON_FLAGS += CFG_TEE_CORE_DEBUG=y CFG_TEE_CORE_MALLOC_DEBUG=y CFG_TEE_TA_MALLOC_DEBUG=y CFG_PM_DEBUG=1 CFG_VERBOSE_INFO=y
++OPTEE_OS_COMMON_FLAGS += CFG_TEE_CORE_EMBED_INTERNAL_TESTS=y CFG_WITH_STATS=y CFG_TEE_FS_KEY_MANAGER_TEST=y
++#Test call force
++#OPTEE_OS_COMMON_FLAGS += CFG_GPIO=n CFG_PL061=y CFG_SPI=n CFG_PL022=y
++#Test auto set CFG_GPIO=y by call force
++#OPTEE_OS_COMMON_FLAGS += CFG_PL061=y CFG_PL022=y NOWERROR=1
++#PL061 and PL022 and SPI enabled by default
++#OPTEE_OS_COMMON_FLAGS += CFG_SPI=y
++OPTEE_OS_COMMON_FLAGS += CFG_SPI_TEST=y
++#OPTEE_OS_COMMON_FLAGS += NOWERROR=1
+ OPTEE_OS_CLEAN_COMMON_FLAGS += PLATFORM=hikey
+ 
+ optee-os: optee-os-common
+@@ -202,6 +219,7 @@ optee-client-clean: optee-client-clean-common
+ ################################################################################
+ # xtest / optee_test
+ ################################################################################
++XTEST_COMMON_FLAGS += CFG_TEE_TA_LOG_LEVEL=3
+ 
+ xtest: xtest-common
+ 
+@@ -360,10 +378,14 @@ boot-img-clean:
+ ################################################################################
+ lloader: arm-tf
+ 	$(MAKE) -C $(LLOADER_PATH) BL1=$(ARM_TF_PATH)/build/hikey/$(ARM_TF_BUILD)/bl1.bin CROSS_COMPILE="$(CCACHE)$(AARCH32_CROSS_COMPILE)" PTABLE_LST=linux-4g
++	@cp $(LLOADER_PATH)/l-loader.bin $(OUT_PATH)/
++	@cp $(LLOADER_PATH)/ptable*.img $(OUT_PATH)/
+ 
+ .PHONY: lloader-clean
+ lloader-clean:
+ 	$(MAKE) -C $(LLOADER_PATH) clean
++	@rm -f $(OUT_PATH)/l-loader.bin
++	@rm -f $(OUT_PATH)/ptable*.img
+ 
+ ################################################################################
+ # nvme image
+diff --git a/kconfigs/hikey.conf b/kconfigs/hikey.conf
+index ae3a960..c7afe7e 100644
+--- a/kconfigs/hikey.conf
++++ b/kconfigs/hikey.conf
+@@ -1,3 +1,45 @@
++CONFIG_BT_HCIUART=n
++CONFIG_BT_HCIUART_H4=n
++CONFIG_BT_WILINK=n
++CONFIG_FIB_RULES=n
++#disable wireless? wireless for wat?
++CONFIG_WIRELESS=n
++CONFIG_CFG80211=n
++CONFIG_CFG80211_DEFAULT_PS=n
++CONFIG_MAC80211=n
++CONFIG_MAC80211_LEDS=n
++CONFIG_DRM=y
++#for spi
++CONFIG_GPIO_SYSFS=y
++CONFIG_DEBUG_GPIO=y
++CONFIG_SPI_SPIDEV=y
++CONFIG_SPI_PL022=y
+ CONFIG_TEE=y
+ CONFIG_OPTEE=y
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
+ CONFIG_PINCTRL_SINGLE=y
++CONFIG_DEBUG_PREEMPT=y
++CONFIG_PREEMPT_TRACER=y
++# CONFIG_DEBUG_RODATA is not set
++CONFIG_DEBUG_INFO=y
++CONFIG_FRAME_POINTER=y
++CONFIG_KGDB=y
++CONFIG_KGDB_SERIAL_CONSOLE=y
++CONFIG_KGDB_KDB=y
++# CONFIG_KDB_KEYBOARD is not set
++CONFIG_MAGIC_SYSRQ=y
++CONFIG_SYSFS=y
++CONFIG_MODULES=y
++#configs that couldn't be added are commented out
++#CONFIG_TREE_PREEMPT_RCU=y
++#CONFIG_PINCTRL_ROCKCHIP=n
++#CONFIG_PINCTRL_TEGRA=n
++#CONFIG_PINCTRL_TEGRA124=n
++#CONFIG_PINCTRL_TEGRA_XUSB=n
++#CONFIG_PINCTRL_MSM=n
++#CONFIG_PINCTRL_MSM8916=n
++#CONFIG_PINCTRL_SAMSUNG=n
++#CONFIG_PINCTRL_EXYNOS=n
++#CONFIG_PINCTRL_MTK_COMMON=n
++#CONFIG_PINCTRL_MT8173=n
+diff --git a/toolchain.mk b/toolchain.mk
+index 4e4e6ea..0bb0a86 100644
+--- a/toolchain.mk
++++ b/toolchain.mk
+@@ -3,6 +3,7 @@
+ ################################################################################
+ ROOT					?= $(CURDIR)/..
+ TOOLCHAIN_ROOT 			?= $(ROOT)/toolchains
++#TOOLCHAIN_ROOT 			?= ${HOME}/work/tcwg/bin
+ 
+ AARCH32_PATH 			?= $(TOOLCHAIN_ROOT)/aarch32
+ AARCH32_CROSS_COMPILE 		?= $(AARCH32_PATH)/bin/arm-linux-gnueabihf-

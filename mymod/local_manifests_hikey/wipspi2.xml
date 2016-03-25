@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+	<remote name="vchong" fetch="https://github.com/vchong" />
+	<remote name="96b-hk" fetch="https://github.com/96boards-hikey" />
+	<remote name="linaro-swg" fetch="https://github.com/linaro-swg" />
+
+	<!-- No. Conflict wif default in hikey.xml -->
+	<!-- default remote="vchong" revision="master" /-->
+
+	<remove-project name="optee_os" />
+	<remove-project name="patches_hikey" />
+	<remove-project name="linux" />
+	<remove-project name="optee_test" />
+	<remove-project name="build" />
+
+	<!-- project remote="vchong" path="optee_os" name="optee_os" revision="wipspi6" /-->
+	<!-- project remote="vchong" path="optee_os" name="optee_os" revision="dbg_spi" /-->
+	<project remote="vchong" path="optee_os" name="optee_os" revision="hikey_spi" />
+	<project remote="vchong" path="optee_test" name="optee_test" revision="spi" />
+	<project remote="vchong" path="patches_hikey" name="patches_hikey" revision="mymod" />
+	<!-- project remote="96b-hk" path="linux" name="linux" revision="hikey-mainline-rebase" /-->
+	<!-- project remote="vchong" path="linux" name="linux" revision="gendrv_spidev" /-->
+	<project remote="vchong" path="linux" name="linux" revision="myhikey" />
+	<project remote="vchong" path="build" name="build" revision="myhikey" >
+		<linkfile src="hikey.mk" dest="build/Makefile" />
+	</project>
+</manifest>

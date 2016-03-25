@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+	<remote name="busybox" fetch="git://busybox.net" />
+	<remote name="linaro-swg" fetch="https://github.com/linaro-swg" />
+	<remote name="linux" fetch="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds" />
+	<remote name="optee" fetch="https://github.com/OP-TEE" />
+	<remote name="qemu" fetch="https://github.com/qemu" />
+	<remote name="vchong" fetch="https://github.com/vchong" />
+
+	<!--
+	<remove-project name="bios_qemu_tz_arm.git" />
+	<remove-project name="optee_os.git" />
+	<remove-project name="qemu.git" />
+	-->
+	<remove-project name="build.git" />
+
+	<default remote="optee" revision="master" />
+
+	<!-- project remote="linaro-swg" path="hello_world" name="hello_world.git" /-->
+
+	<!-- OP-TEE gits -->
+	<!--
+	<project remote="vchong" path="optee_os" name="optee_os.git" revision="upstr_qemu"/>
+	<project remote="vchong" path="bios_qemu_tz_arm" name="bios_qemu_tz_arm.git" />
+	<project remote="qemu" path="qemu" name="qemu.git"/>
+	-->
+
+	<!-- Build -->
+	<project remote="vchong" path="build" name="build.git" revision="myqemu">
+		<linkfile src="qemu.mk" dest="build/Makefile" />
+	</project>
+</manifest>
